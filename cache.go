@@ -78,6 +78,13 @@ func (cache *Cache) Touch(key []byte, expireSeconds int) (err error) {
 func (cache *Cache) Get(key []byte) (value []byte, err error) {
 	hashVal := hashFunc(key)
 	segID := hashVal & segmentAndOpVal
+	value, _, err = cache.segments[segID].get(key, nil, hashVal, false)
+	return
+}
+
+func (cache *Cache) GetWithLock(key []byte) (value []byte, err error) {
+	hashVal := hashFunc(key)
+	segID := hashVal & segmentAndOpVal
 	cache.locks[segID].Lock()
 	value, _, err = cache.segments[segID].get(key, nil, hashVal, false)
 	cache.locks[segID].Unlock()
@@ -96,9 +103,7 @@ func (cache *Cache) Get(key []byte) (value []byte, err error) {
 func (cache *Cache) GetFn(key []byte, fn func([]byte) error) (err error) {
 	hashVal := hashFunc(key)
 	segID := hashVal & segmentAndOpVal
-	cache.locks[segID].Lock()
 	err = cache.segments[segID].view(key, fn, hashVal, false)
-	cache.locks[segID].Unlock()
 	return
 }
 
@@ -139,9 +144,7 @@ func (cache *Cache) Peek(key []byte) (value []byte, err error) {
 func (cache *Cache) PeekFn(key []byte, fn func([]byte) error) (err error) {
 	hashVal := hashFunc(key)
 	segID := hashVal & segmentAndOpVal
-	cache.locks[segID].Lock()
 	err = cache.segments[segID].view(key, fn, hashVal, true)
-	cache.locks[segID].Unlock()
 	return
 }
 
